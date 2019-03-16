@@ -1,0 +1,10 @@
+{
+    "ignore": [
+        ".git",
+        "node_modules",
+        "src"
+    ],
+    "watch": [
+        "dist/"
+    ]
+}

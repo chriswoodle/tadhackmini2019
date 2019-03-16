@@ -1,0 +1,21 @@
+{
+    "compilerOptions": {
+        "declaration": true,
+        "moduleResolution": "node",
+        "noImplicitAny": true,
+        "preserveConstEnums": true,
+        "target": "es2018",
+        "module": "commonjs",
+        "inlineSourceMap": true,
+        "outDir": "dist",
+        "rootDir": "src",
+        "strict": true,
+        "pretty": true,
+        "lib": [
+            "es7"
+        ]
+    },
+    "exclude": [
+        "./dist"
+    ]
+}

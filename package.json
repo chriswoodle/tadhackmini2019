@@ -1,0 +1,30 @@
+{
+  "name": "tadhackmini2019",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -b -v",
+    "watch": "tsc -b -v -w",
+    "debug": "nodemon -r dotenv/config dist/index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/cors": "^2.8.4",
+    "@types/debug": "^4.1.2",
+    "@types/express": "^4.16.1",
+    "@types/morgan": "^1.7.35",
+    "dotenv": "^7.0.0",
+    "nodemon": "^1.18.10",
+    "typescript": "^3.3.3333"
+  },
+  "dependencies": {
+    "body-parser": "^1.18.3",
+    "cors": "^2.8.5",
+    "debug": "^4.1.1",
+    "express": "^4.16.4",
+    "morgan": "^1.9.1",
+    "source-map-support": "^0.5.11"
+  }
+}
