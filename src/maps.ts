@@ -17,3 +17,22 @@ export function geocodeAddress(address: string): Promise<google.maps.GeocoderRes
         });
     });
 }
+
+const GOOGLE_MAPS_URL_REGEX = /https:\/\/www\.google\.com\/maps\/place\/(-?\d+\.\d+)\+(-?\d+\.\d+)/;
+// Regex to match text message google maps location sent on iphone using google maps keyboard
+// Example: https://www.google.com/maps/place/28.523254+-81.462899/?entry=im
+
+/**
+ * matchGoogleMapsURL('https://www.google.com/maps/place/28.523254+-81.462899/?entry=im'); =>
+ * { lat: '28.523254', long: '-81.462899' }
+ */
+export function matchGoogleMapsURL(message: string) {
+    const matches = message.match(GOOGLE_MAPS_URL_REGEX);
+    if (!matches) return false;
+    const lat = matches[1];
+    const long = matches[2];
+    if (!lat || !long) return false;
+    return {
+        lat, long
+    };
+}
