@@ -12,10 +12,12 @@
         "strict": true,
         "pretty": true,
         "lib": [
-            "es7"
+            "es7",
+            "dom"
         ]
     },
     "exclude": [
-        "./dist"
+        "./dist",
+        "node_modules"
     ]
 }

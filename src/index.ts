@@ -5,6 +5,8 @@ import * as bodyParser from 'body-parser';
 import * as morgan from 'morgan';
 import * as cors from 'cors';
 
+import * as maps from './maps';
+
 import * as debug from 'debug';
 const log = debug('app:server');
 
@@ -25,5 +27,8 @@ app.use(bodyParser.json());
 app.use(morgan('tiny'));
 
 app.get('/', (req, res) => {
+    maps.geocodeAddress('1600 Amphitheatre Parkway, Mountain View, CA').then(response =>{
+        log(response);
+    })
     res.send('Hello World!');
 });
