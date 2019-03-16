@@ -23,11 +23,14 @@
   },
   "dependencies": {
     "@google/maps": "^0.5.5",
+    "@types/google__maps": "^0.5.2",
+    "@types/request": "^2.48.1",
     "body-parser": "^1.18.3",
     "cors": "^2.8.5",
     "debug": "^4.1.1",
     "express": "^4.16.4",
     "morgan": "^1.9.1",
+    "request": "^2.88.0",
     "source-map-support": "^0.5.11"
   }
 }
