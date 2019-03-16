@@ -1,3 +1,4 @@
+![alt text](https://raw.githubusercontent.com/chriswoodle/tadhackmini2019/master/logo.png)
 
 # Setup
 Build code
