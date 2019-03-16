@@ -20,8 +20,7 @@ def get_translate(language, message, translate_api):
     new_text = value['data']['translations'][0]
     return new_text
 
-
-def get_language(language_name):
+def get_language( language_name):
     language_reference = {
     'Afrikaans':    'af',
     'Albanian':    'sq',
@@ -125,8 +124,10 @@ def get_language(language_name):
     'Zulu' :    'zu'
     }
 
-    lang_code = language_reference[language_name]
-    return lang_code
-
+    lang_list = list(language_reference.keys())
+    in_lang = lang_list.count(language_name)
+    if in_lang > 0:
+        language_name = language_reference[language_name]
+    return language_name
 
 print(get_translate(language, message, api_key))
