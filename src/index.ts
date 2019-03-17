@@ -57,10 +57,16 @@ app.post('/flowroute', (req, res) => {
 });
 
 app.post('/flowroute-mms', (req, res) => {
-    console.log(req.body.included)
+    console.log(req.body)
     console.log(req.body.included[0])
     console.log(req.body.included[0])
+    const message = req.body.data.attributes.body;
+    const number = req.body.data.attributes.from;
+    const url = req.body.included[0].attributes.url;
+    const imageUrl = url.substring(0, url.indexOf("?") + 1);
+    log('/flowroute-mms', message, number, imageUrl);
 
+    handler.mms(message, number, handler.SMSSourceType.Flowroute, imageUrl);
     res.send('ok');
 });
 /**
@@ -90,7 +96,6 @@ app.post('/telesign', (req, res) => {
     }
     if (req.body.status.code == 200) {
         log('/telesign', req.body.status.description);
-
     }
 });
 

@@ -2,3 +2,4 @@ python-dotenv
 requests
 pandas
 sklearn
+google-cloud-vision

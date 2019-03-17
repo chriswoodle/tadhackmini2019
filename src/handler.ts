@@ -2,6 +2,7 @@ import * as path from 'path';
 import * as maps from './maps';
 import * as child from './child';
 import * as sender from './sender';
+import * as fda from './fda';
 
 import * as debug from 'debug';
 const log = debug('app:handler');
@@ -61,7 +62,50 @@ export function sms(message: string, number: string, sourceType: SMSSourceType) 
                 cache[number].location = location;
                 return sendResponseMessage('I have recieved your location', number, sourceType);
             }
+        })
+        .then(() => {
             return startClassification(message, number, sourceType);
+        })
+        .then((response) => {
+            log(response)
+            return handleClassification(message, number, sourceType, response);
+        })
+        .then(() => {
+            return Promise.resolve('complete');
+        })
+        .catch(() => {
+            log('Either error or end!');
+            sendResponseMessage('You have discovered the bonus level! https://i.kinja-img.com/gawker-media/image/upload/s--0ivwLoXx--/c_scale,f_auto,fl_progressive,q_80,w_800/jpojwj04rbmzvwnoqnrt.jpg', number, sourceType);
+        })
+}
+
+export function mms(message: string, number: string, sourceType: SMSSourceType, imageUrl: string) {
+    return Promise.resolve()
+        .then(() => {
+            if (!cache[number]) {
+                // new session
+                cache[number] = {};
+            }
+        })
+        .then(() => {
+            return startClassification(message, number, sourceType);
+        })
+        .then((response) => {
+            log(response)
+            switch (response.type) {
+                case ClassificationMessageTypes.Medicine:
+                    handleMedicineImage(imageUrl).then((medication: string) => {
+                        log(medication);
+                        return fda.getGeneralDrugName(medication);
+                    }).then((response) => {
+                        log(response.results);
+                        return sendResponseMessage(`I believe this medication is called: ${response.results[0].generic_name}`, number, sourceType);
+                    })
+                    break;
+                case ClassificationMessageTypes.WhatIsThisImahe:
+                    return sendResponseMessage('Ok', number, sourceType);
+                    break;
+            }
         })
         .then(() => {
             return Promise.resolve('complete');
@@ -79,13 +123,10 @@ function startClassification(message: string, number: string, sourceType: SMSSou
             // First, classify the inbound message
             return child.exec<MessageClassification>(path.resolve(__dirname, '../scripts'), 'python3', 'get_translation.py', `"${message}"`, 'English', process.env.GOOGLE_TRANSLATE_KEY as any)
         })
-        .then((response) => {
-            log(response)
-            return handleClassification(message, number, sourceType, response);
-        })
 }
 
 function handleClassification(message: string, number: string, sourceType: SMSSourceType, response: MessageClassification) {
+    log('handleClassification')
     return new Promise(() => {
         // Handle the classification type
         switch (response.type) {
@@ -99,10 +140,20 @@ function handleClassification(message: string, number: string, sourceType: SMSSo
 
                 break;
             case ClassificationMessageTypes.Medicine:
-                return sendResponseMessage('Ok', number, sourceType);
+                log(message);
+                const words = message.split(' ');
+                const medication = words[words.length - 1].replace('?', '');
+                log(medication);
+                return fda.getGeneralDrugName(medication).then((response) => {
+                    log(response.results);
+                    return sendResponseMessage(`I believe this medication is called: ${response.results[0].generic_name}`, number, sourceType);
+                })
                 break;
             case ClassificationMessageTypes.Translate:
-                return sendResponseMessage('Ok', number, sourceType);
+                return translate(message).then(response => {
+                    log(response)
+                    return sendResponseMessage(response.translatedText, number, sourceType);
+                })
                 break;
             case ClassificationMessageTypes.WhatIsThisImahe:
                 return sendResponseMessage('Ok', number, sourceType);
@@ -134,6 +185,7 @@ You can:
 
 
 function sendResponseMessage(message: string, number: string, sourceType: SMSSourceType) {
+    log('sendResponseMessage', message)
     switch (sourceType) {
         case SMSSourceType.APIDaze:
             return sender.sendApidazeSMS(message, number).then(() => {
@@ -153,4 +205,30 @@ function sendResponseMessage(message: string, number: string, sourceType: SMSSou
         default:
             return Promise.resolve();
     }
+}
+
+interface ImageOCRResponse {
+    text: string
+}
+
+function handleMedicineImage(imageUrl: string) {
+    return Promise.resolve()
+        .then(() => {
+            return child.exec<ImageOCRResponse[]>(path.resolve(__dirname, '../scripts'), 'python3', 'gcpsimpleocr.py', imageUrl)
+        })
+        .then((response) => {
+            const line = response[0].text;
+            let medication;
+            if (line.indexOf('\n') > 0) {
+                medication = line.substring(0, line.indexOf('\n'));
+            } else {
+                medication = line;
+            }
+            log(medication);
+            return medication;
+        });
+}
+
+function translate(message: string) {
+    return child.exec<any>(path.resolve(__dirname, '../scripts'), 'python3', 'translate.py', `"${message}"`, process.env.GOOGLE_TRANSLATE_KEY as any)
 }

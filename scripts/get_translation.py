@@ -24,7 +24,7 @@ def get_translation(language, message, translate_api):
         if new_text['translatedText'].count(':') == 0:
             new_text['type'] = classifier(new_text['translatedText'])
         else:
-            new_text['type'] = 4
+            new_text['type'] = '4'
 
     else:
         new_text = dict(r.json())
