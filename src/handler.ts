@@ -114,7 +114,15 @@ function handleClassification(message: string, number: string, sourceType: SMSSo
                 return sendResponseMessage('Ok', number, sourceType);
                 break;
             case ClassificationMessageTypes.Hello:
-                const hi = `Hello, Welcome to CityAssistant!`
+                const hi = `Hello, Welcome to CityAssistant!
+You can: 
+  Ask to find nearby places
+  Get directions
+  Get generic medication/drug names
+  List some local news
+  Ask for help
+  Get local authority information
+                `;
                 return sendResponseMessage(hi, number, sourceType);
                 break;
             case ClassificationMessageTypes.Stop:
@@ -133,7 +141,9 @@ function sendResponseMessage(message: string, number: string, sourceType: SMSSou
             })
             break;
         case SMSSourceType.Flowroute:
-            return Promise.resolve();
+            return sender.sendFlowrouteSMS(message, number).then(() => {
+                return Promise.resolve();
+            })
             break;
         case SMSSourceType.TeleSign:
             return sender.sendTelesignSMS(message, number).then(() => {

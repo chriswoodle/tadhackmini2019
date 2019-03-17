@@ -57,7 +57,36 @@ export function sendTelesignSMS(message: string, number: string) {
         request(options, function (error, response, body) {
             if (error) throw new Error(error);
             console.log(body);
-            return resolve(body)
+            return resolve(body);
         });
+    })
+}
+
+const FLOWROUTE_API_KEY = process.env.FLOWROUTE_API_KEY;
+if (!FLOWROUTE_API_KEY) throw new Error('Missing process.env.FLOWROUTE_API_KEY!');
+const FLOWROUTE_FROM_NUMBER = process.env.FLOWROUTE_FROM_NUMBER;
+if (!FLOWROUTE_FROM_NUMBER) throw new Error('Missing process.env.FLOWROUTE_FROM_NUMBER!');
+
+export function sendFlowrouteSMS(message: string, number: string) {
+    log(`flowroute sending "${message}" to "${number}"`)
+    return new Promise((resolve, reject) => {
+        const options = {
+            method: 'POST',
+            url: 'https://api.flowroute.com/v2.1/messages',
+            headers:
+            {
+                Authorization: `Basic ${FLOWROUTE_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: { to: number, from: FLOWROUTE_FROM_NUMBER, body: message },
+            json: true
+        };
+
+        request(options, function (error, response, body) {
+            if (error) throw new Error(error);
+            console.log(body);
+            return resolve(body);
+        });
+
     })
 }
