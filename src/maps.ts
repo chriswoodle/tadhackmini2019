@@ -29,10 +29,10 @@ const GOOGLE_MAPS_URL_REGEX = /https:\/\/www\.google\.com\/maps\/place\/(-?\d+\.
 export function matchGoogleMapsURL(message: string) {
     const matches = message.match(GOOGLE_MAPS_URL_REGEX);
     if (!matches) return false;
-    const lat = matches[1];
-    const long = matches[2];
+    const lat: string = matches[1];
+    const long: string = matches[2];
     if (!lat || !long) return false;
     return {
-        lat, long
+        lat: parseFloat(lat), long: parseFloat(long)
     };
 }
