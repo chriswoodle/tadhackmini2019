@@ -1,133 +1,180 @@
 import requests
 import sys
 import json 
-from dotenv import load_dotenv
 import os 
-load_dotenv()
-
-message = sys.argv[1]
-language = sys.argv[2]
-api_key = os.getenv("GOOGLE_TRANSLATE_KEY")
-
+import sklearn 
+import pandas as pd 
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 
+message = str(sys.argv[1])
+language = str(sys.argv[2])
+api_key = str(sys.argv[3])
 
-def get_translate(language, message, translate_api):
-    lang_code = get_language(language)
+def get_translation(language, message, translate_api):
+    lang_code = get_language(language.lower())
     params = {'q':message, 'target':lang_code, 'key':translate_api }
     r = requests.get('https://translation.googleapis.com/language/translate/v2', params)
-    value = r.json()
-    new_text = value['data']['translations'][0]
+
+    if r.status_code == 200:
+        resp = r.json()
+        new_text = dict(resp['data']['translations'][0])
+
+        # ':' is used to signify a translation, if missing, predicts the question type
+        if new_text['translatedText'].count(':') == 0:
+            new_text['type'] = classifier(new_text['translatedText'])
+        else:
+            new_text['type'] = 4
+
+    else:
+        new_text = r.json()
+    
     return new_text
 
 def get_language( language_name):
+    # Gets the abbreviation for the language requested
+    #   default to English if unrecognized
     language_reference = {
-    'Afrikaans':    'af',
-    'Albanian':    'sq',
-    'Amharic':    'am',
-    'Arabic':    'ar',
-    'Armenian':    'hy',
-    'Azerbaijani':    'az',
-    'Basque':    'eu',
-    'Belarusian':    'be',
-    'Bengali':    'bn',
-    'Bosnian':    'bs',
-    'Bulgarian':    'bg',
-    'Catalan':    'ca',
-    'Chinese':    'zh-CN ',
-    'Corsican':    'co',
-    'Croatian':    'hr',
-    'Czech':    'cs',
-    'Danish':    'da',
-    'Dutch':    'nl',
-    'English':    'en',
-    'Esperanto':    'eo',
-    'Estonian':    'et',
-    'Finnish':    'fi',
-    'French':    'fr',
-    'Frisian':    'fy',
-    'Galician':    'gl',
-    'Georgian':    'ka',
-    'German':    'de',
-    'Greek':    'el',
-    'Gujarati':    'gu',
-    'Haitian Creole':    'ht',
-    'Hausa':    'ha',
-    'Hebrew':    'he',
-    'Hindi':    'hi',
-    'Hungarian':    'hu',
-    'Icelandic':    'is',
-    'Igbo':    'ig',
-    'Indonesian':    'id',
-    'Irish':    'ga',
-    'Italian':    'it',
-    'Japanese':    'ja',
-    'Javanese':    'jw',
-    'Kannada':    'kn',
-    'Kazakh':    'kk',
-    'Khmer':    'km',
-    'Korean':    'ko',
-    'Kurdish':    'ku',
-    'Kyrgyz':    'ky',
-    'Lao':    'lo',
-    'Latin':    'la',
-    'Latvian':    'lv',
-    'Lithuanian':    'lt',
-    'Luxembourgish':    'lb',
-    'Macedonian':    'mk',
-    'Malagasy':    'mg',
-    'Malay':    'ms',
-    'Malayalam':    'ml',
-    'Maltese':    'mt',
-    'Maori':    'mi',
-    'Marathi':    'mr',
-    'Mongolian':    'mn',
-    'Myanmar (Burmese)':    'my',
-    'Nepali':    'ne',
-    'Norwegian':    'no',
-    'Nyanja':    'ny',
-    'Pashto':    'ps',
-    'Persian':    'fa',
-    'Polish':    'pl',
-    'Portuguese':    'pt',
-    'Punjabi':    'pa',
-    'Romanian':    'ro',
-    'Russian':    'ru',
-    'Samoan':    'sm',
-    'Scots Gaelic':    'gd',
-    'Serbian':    'sr',
-    'Sesotho':    'st',
-    'Shona':    'sn',
-    'Sindhi':    'sd',
-    'Sinhala':	'si',
-    'Slovak':    'sk',
-    'Slovenian':    'sl',
-    'Somali':    'so',
-    'Spanish':    'es',
-    'Sundanese':    'su',
-    'Swahili':    'sw',
-    'Swedish':    'sv',
-    'Filipino':    'tl',
-    'Tajik':    'tg',
-    'Tamil':    'ta',
-    'Telugu':    'te',
-    'Thai':    'th',
-    'Turkish':    'tr',
-    'Ukrainian':    'uk',
-    'Urdu':    'ur',
-    'Uzbek':    'uz',
-    'Vietnamese':    'vi',
-    'Welsh':    'cy',
-    'Xhosa':    'xh',
-    'Yiddish':    'yi',
-    'Yoruba':    'yo',
-    'Zulu' :    'zu'
+    'afrikaans':    'af',
+    'albanian':    'sq',
+    'amharic':    'am',
+    'arabic':    'ar',
+    'armenian':    'hy',
+    'azerbaijani':    'az',
+    'basque':    'eu',
+    'belarusian':    'be',
+    'bengali':    'bn',
+    'bosnian':    'bs',
+    'bulgarian':    'bg',
+    'catalan':    'ca',
+    'chinese':    'zh-cn ',
+    'corsican':    'co',
+    'croatian':    'hr',
+    'czech':    'cs',
+    'danish':    'da',
+    'dutch':    'nl',
+    'english':    'en',
+    'esperanto':    'eo',
+    'estonian':    'et',
+    'finnish':    'fi',
+    'french':    'fr',
+    'frisian':    'fy',
+    'galician':    'gl',
+    'georgian':    'ka',
+    'german':    'de',
+    'greek':    'el',
+    'gujarati':    'gu',
+    'haitian creole':    'ht',
+    'hausa':    'ha',
+    'hebrew':    'he',
+    'hindi':    'hi',
+    'hungarian':    'hu',
+    'icelandic':    'is',
+    'igbo':    'ig',
+    'indonesian':    'id',
+    'irish':    'ga',
+    'italian':    'it',
+    'japanese':    'ja',
+    'javanese':    'jw',
+    'kannada':    'kn',
+    'kazakh':    'kk',
+    'khmer':    'km',
+    'korean':    'ko',
+    'kurdish':    'ku',
+    'kyrgyz':    'ky',
+    'lao':    'lo',
+    'latin':    'la',
+    'latvian':    'lv',
+    'lithuanian':    'lt',
+    'luxembourgish':    'lb',
+    'macedonian':    'mk',
+    'malagasy':    'mg',
+    'malay':    'ms',
+    'malayalam':    'ml',
+    'maltese':    'mt',
+    'maori':    'mi',
+    'marathi':    'mr',
+    'mongolian':    'mn',
+    'myanmar (burmese)':    'my',
+    'nepali':    'ne',
+    'norwegian':    'no',
+    'nyanja':    'ny',
+    'pashto':    'ps',
+    'persian':    'fa',
+    'polish':    'pl',
+    'portuguese':    'pt',
+    'punjabi':    'pa',
+    'romanian':    'ro',
+    'russian':    'ru',
+    'samoan':    'sm',
+    'scots gaelic':    'gd',
+    'serbian':    'sr',
+    'sesotho':    'st',
+    'shona':    'sn',
+    'sindhi':    'sd',
+    'sinhala':	'si',
+    'slovak':    'sk',
+    'slovenian':    'sl',
+    'somali':    'so',
+    'spanish':    'es',
+    'sundanese':    'su',
+    'swahili':    'sw',
+    'swedish':    'sv',
+    'filipino':    'tl',
+    'tajik':    'tg',
+    'tamil':    'ta',
+    'telugu':    'te',
+    'thai':    'th',
+    'turkish':    'tr',
+    'ukrainian':    'uk',
+    'urdu':    'ur',
+    'uzbek':    'uz',
+    'vietnamese':    'vi',
+    'welsh':    'cy',
+    'xhosa':    'xh',
+    'yiddish':    'yi',
+    'yoruba':    'yo',
+    'zulu' :    'zu'
     }
 
     lang_list = list(language_reference.keys())
     in_lang = lang_list.count(language_name)
     if in_lang > 0:
-        language_name = language_reference[language_name]
+        language_name = language_reference.get(language_name, 'en')
     return language_name
+
+
+
+
+
+def classifier(message):
+    # cur_directory = 'C:/Users/h3576/OneDrive - University of Florida/Projects/tadhackmini2019/scripts'
+    # os.chdir(cur_directory)
+    df_data = pd.read_csv('classifier_data.csv')
+    df_data = df_data.loc[df_data['Target'] != 4]
+    vectorizer = TfidfVectorizer()
+    vectorizer.fit_transform(df_data['Text'])
+    temp = vectorizer.transform(df_data['Text'])
+
+
+
+    # Model Builder
+    new_question = 'where is Mcdonalds?'
+    clf = RandomForestClassifier()
+    clf.fit(temp, df_data['Target'])
+    input_question = vectorizer.transform([message])
+    return clf.predict(input_question)[0]
+
+# Cases
+# 1 FindNearest
+# 2 Navigate
+# 3 MedicineLookup
+# 4 Translate
+# 5 WhatDis
+# 6 News
+# 7 Help
+# 
+# 
 
 print(get_translate(language, message, api_key))
