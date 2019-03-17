@@ -7,7 +7,6 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-
 message = str(sys.argv[1])
 language = str(sys.argv[2])
 api_key = str(sys.argv[3])
@@ -28,8 +27,8 @@ def get_translation(language, message, translate_api):
             new_text['type'] = 4
 
     else:
-        new_text = r.json()
-    
+        new_text = dict(r.json())
+    new_text = json.dumps(new_text)
     return new_text
 
 def get_language( language_name):
@@ -164,7 +163,7 @@ def classifier(message):
     clf = RandomForestClassifier()
     clf.fit(temp, df_data['Target'])
     input_question = vectorizer.transform([message])
-    return clf.predict(input_question)[0]
+    return str(clf.predict(input_question)[0])
 
 # Cases
 # 1 FindNearest
@@ -177,4 +176,4 @@ def classifier(message):
 # 
 # 
 
-print(get_translate(language, message, api_key))
+print(get_translation(language, message, api_key))
