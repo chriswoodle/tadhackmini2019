@@ -3,6 +3,11 @@ import * as maps from '@google/maps';
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 if (!GOOGLE_MAPS_API_KEY) throw new Error('Missing process.env.GOOGLE_MAPS_API_KEY!');
 
+export interface Location {
+    lat: number;
+    long: number;
+}
+
 const client = maps.createClient({ key: GOOGLE_MAPS_API_KEY });
 
 export function geocodeAddress(address: string) {

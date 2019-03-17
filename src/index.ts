@@ -50,12 +50,35 @@ app.post('/flowroute-mms', (req, res) => {
 
     res.send('ok');
 });
-
+/**
+ * Sample: 
+ * { status: 
+   { updated_on: '2019-03-17T16:14:33.001105Z',
+     code: 1500,
+     description: 'Delivered to customer' },
+  submit_timestamp: '2019-03-17T16:14:32.857000Z',
+  errors: [],
+  user_response: 
+   { phone_number: '13218775974',
+     iso_country_code: 'US',
+     sender_id: '17192126202',
+     mo_message: 'Hello from team zero' },
+  sub_resource: 'mo_sms',
+  reference_id: '65A631BBA6640704912112CEE9F238B8' }
+   */
 app.post('/telesign', (req, res) => {
-    console.log(req.body)
-    // log('/telesign', message, number);
+    if (req.body.status.code == 1500) {
+        console.log(req.body)
+        const message = req.body.user_response.mo_message;
+        const number = req.body.user_response.phone_number;
+        log('/telesign', message, number);
+        handler.sms(message, number, handler.SMSSourceType.TeleSign);
+        res.send('ok');
+    }
+    if (req.body.status.code == 200) {
+        log('/telesign', req.body.status.description);
 
-    res.send('ok');
+    }
 });
 
 app.post('/telesign-voice', (req, res) => {
