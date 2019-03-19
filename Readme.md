@@ -48,3 +48,10 @@ npm run debug
 
 ## Google maps typescript definitions
 https://gist.github.com/lukas-zech-software/a7e4a23a6833ec1abb1fc836138f7822
+
+## Team
+
+Chris Woodle
+Peter Tarsoly
+Muntaser Syed
+Hunter Henry
