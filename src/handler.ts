@@ -4,6 +4,10 @@ import * as child from './child';
 import * as sender from './sender';
 import * as fda from './fda';
 
+const striptags = require('striptags');
+
+const defaultLoc = { lat: 28.342435, long: -81.527371 };
+
 import * as debug from 'debug';
 const log = debug('app:handler');
 
@@ -44,7 +48,9 @@ interface MessageClassification {
 }
 
 // Cache of current sessions, keyed by phone number
-const cache: Cache = {};
+const cache: Cache = {
+    '16318973828': { location: { lat: 28.342435, long: -81.527371 } }
+};
 
 export function sms(message: string, number: string, sourceType: SMSSourceType) {
     return Promise.resolve()
@@ -131,13 +137,28 @@ function handleClassification(message: string, number: string, sourceType: SMSSo
         // Handle the classification type
         switch (response.type) {
             case ClassificationMessageTypes.FindNearest:
-                if (!cache[number].location) return sendResponseMessage('I need your location to find nearby places.', number, sourceType);
+                const locat = cache[number].location || defaultLoc;
+                if (!locat) return sendResponseMessage('I need your location to find nearby places. Please use the google maps keyboard to send you location. Example: https://www.google.com/maps/place/28.342435+-81.527371/?entry=im', number, sourceType);
                 else {
+                    log('getNearby');
+                    maps.getNearby(locat, message).then(response => {
+                        log(response);
+                        for (let index = 0; index < 5; index++) {
+                            sendResponseMessage(response[index].name + "\n" + response[index].address, number, sourceType);
+                        }
+                    })
                 }
                 break;
             case ClassificationMessageTypes.Navigate:
-                return sendResponseMessage('Ok', number, sourceType);
-
+                const locatio = cache[number].location || defaultLoc;
+                if (!locatio) return sendResponseMessage('I need your location to find nearby places. Please use the google maps keyboard to send you location. Example: https://www.google.com/maps/place/28.342435+-81.527371/?entry=im', number, sourceType);
+                else {
+                    return maps.directionsFromQuery(locatio, message, 'driving', locatio).then(response => {
+                        log(response.routes[0].legs[0].steps.map(step => step.html_instructions));
+                        const result = { "directions": directionString(response.routes[0].legs[0].steps.map(step => step.html_instructions)) }
+                        return sendResponseMessage(striptags(result.directions), number, sourceType);
+                    })
+                }
                 break;
             case ClassificationMessageTypes.Medicine:
                 log(message);
@@ -156,23 +177,34 @@ function handleClassification(message: string, number: string, sourceType: SMSSo
                 })
                 break;
             case ClassificationMessageTypes.WhatIsThisImahe:
+                
                 return sendResponseMessage('Ok', number, sourceType);
                 break;
             case ClassificationMessageTypes.News:
-                return sendResponseMessage('Ok', number, sourceType);
+                const loc = cache[number].location || defaultLoc;
+                if (!loc) return sendResponseMessage('I need your location to find nearby places. Please use the google maps keyboard to send you location. Example: https://www.google.com/maps/place/28.342435+-81.527371/?entry=im', number, sourceType);
+                else {
+                    const location = loc.lat + ',' + loc.long
+                    log(location);
+                    maps.nearbyTransitFormatted(location).then(response => {
+                        log(response)
+                        response.forEach(item => {
+                            sendResponseMessage(item.output, number, sourceType);
+                        });
+                    });
+                }
                 break;
             case ClassificationMessageTypes.Help:
-                return sendResponseMessage('Ok', number, sourceType);
+                return sendResponseMessage('You should call 911.', number, sourceType);
                 break;
             case ClassificationMessageTypes.Hello:
                 const hi = `Hello, Welcome to CityAssistant!
-You can: 
-  Ask to find nearby places
-  Get directions
-  Get generic medication/drug names
-  List some local news
-  Ask for help
-  Get local authority information
+You can try: 
+  Where is the nearest hospital?
+  How do I get to orlando international airport?
+  What is the generic name for Advil?
+  Spanish: Hello how are you?
+  English: comment ca va
                 `;
                 return sendResponseMessage(hi, number, sourceType);
                 break;
@@ -231,4 +263,21 @@ function handleMedicineImage(imageUrl: string) {
 
 function translate(message: string) {
     return child.exec<any>(path.resolve(__dirname, '../scripts'), 'python3', 'translate.py', `"${message}"`, process.env.GOOGLE_TRANSLATE_KEY as any)
+}
+
+
+function directionString(instructions: string[]) {
+    let directions: string = "";
+
+    instructions.forEach((instruction, i) => {
+        if (i != 1) {
+            directions = directions + ". Then, " + instruction as string;
+        }
+        else {
+            directions = instruction as string;
+        }
+
+    })
+    log(directions);
+    return directions;
 }

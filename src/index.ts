@@ -5,16 +5,9 @@ import * as bodyParser from 'body-parser';
 import * as morgan from 'morgan';
 import * as cors from 'cors';
 
-import * as maps from './maps';
 import * as handler from './handler';
 
 import * as debug from 'debug';
-
-
-const userLocations = {
-    'number': 'latlong google url',
-    '16318973828': 'https://www.google.com/maps/place/28.523254+-81.462899/?entry=im'
-}
 
 const log = debug('app:server');
 
@@ -35,15 +28,6 @@ app.use(bodyParser.json());
 app.use(morgan('tiny'));
 
 app.get('/', (req, res) => {
-    maps.geocodeAddress('1600 Amphitheatre Parkway, Mountain View, CA').then(response => {
-        log(response);
-    })
-    maps.getAddressFromQuery('REI winter park').then(response => {
-        log("address for REI winter park: " + response);
-    })
-    maps.getNearby("wawa").then(response => {
-        log(response);
-    });
     res.send('Hello World!');
 });
 
@@ -115,46 +99,45 @@ app.post('/apidaze', (req, res) => {
     res.send('ok');
 });
 
+// Endpoints for IVR
+app.get('/1', (req,res) => {
+    handler.sms('What is the nearest pharmacy', '16318973828', handler.SMSSourceType.TeleSign);
+    res.send('ok');
+});
 
-app.get('/directionsfromquery', (req, res) => {
-    const query = req.query.query;
-    // const phoneNumber = req.query.number;
-    const transportMode = req.query.mode;
+app.get('/2', (req,res) => {
+    handler.sms('What is the nearest restaurant', '16318973828', handler.SMSSourceType.TeleSign);
+    res.send('ok');
+});
 
-    // TODO: take out the string literal
-    maps.directionsFromQuery('https://www.google.com/maps/place/28.523254+-81.462899/?entry=im', query, transportMode).then(response => {
+app.get('/3', (req,res) => {
+    handler.sms('What is the nearest transit station', '16318973828', handler.SMSSourceType.TeleSign);
+    res.send('ok');
+});
 
-        log(response.routes[0].legs[0].steps.map(step => step.html_instructions));
-        const result = { "directions":directionString(response.routes[0].legs[0].steps.map(step => step.html_instructions))}
-        res.send(result);
-    })
-})
+app.get('/4', (req,res) => {
+    handler.sms('What is the nearest restroom', '16318973828', handler.SMSSourceType.TeleSign);
+    res.send('ok');
+});
 
-app.get('/nearby', (req,res) => {
-    maps.getNearby(req.query.query).then(response => {
-        log(response);
-        res.send(response);
-    });
-})
+app.get('/5', (req,res) => {
+    handler.sms('What is the nearest hotel', '16318973828', handler.SMSSourceType.TeleSign);
+    res.send('ok');
+});
 
-app.get('/transitnearby', (req,res) => {
-    maps.nearbyTransitFormatted().then((response => {
-        res.send(response);
-    }));
-})
+app.get('/6', (req,res) => {
+    handler.sms('What is the nearest gas station', '16318973828', handler.SMSSourceType.TeleSign);
+    res.send('ok');
+});
 
-function directionString(instructions: string[]) {
-    let directions: string = "";
+app.get('/7', (req,res) => {
+    handler.sms('What is the nearest police station', '16318973828', handler.SMSSourceType.TeleSign);
+    res.send('ok');
+});
 
-    instructions.forEach((instruction, i) => {
-        if(i != 1) {
-            directions = directions + ". Then, " + instruction as string;
-        }
-        else {
-            directions = instruction as string;
-        }
-        
-    })
-    log(directions);
-    return directions;
-}
+app.get('/other', (req,res) => {
+    handler.sms('hello', '16318973828', handler.SMSSourceType.TeleSign);
+    res.send('ok');
+});
+
+

@@ -1,7 +1,4 @@
 import * as maps from '@google/maps';
-import { response } from 'express';
-import { resolve } from 'dns';
-import { rejects } from 'assert';
 import * as request from 'request';
 
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
@@ -45,26 +42,25 @@ export function addressFromPlaceID(response: Partial<maps.PlaceSearchResult>) {
 
 }
 
-export function placeIDFromQuery(query: string) {
-    const request: maps.FindPlaceRequest = { input: query, inputtype: 'textquery' };
+export function placeIDFromQuery(query: string,location: Location) {
+    const request: maps.FindPlaceRequest = { input: query, inputtype: 'textquery', locationbias: `circle:5000@${location.lat},${location.long}` };
 
     return new Promise<Partial<maps.PlaceSearchResult>>((resolve, reject) => {
         client.findPlace(request, (error, response) => {
             if (error) {
                 reject(error);
             }
-
             resolve(response.json.candidates[0]);
         });
     });
 }
 
 
-export function getAddressFromQuery(query: string) {
+export function getAddressFromQuery(query: string, location: Location) {
 
     return Promise.resolve()
         .then(() => {
-            return placeIDFromQuery(query);
+            return placeIDFromQuery(query, location);
         })
         .then((place_id) => {
             return addressFromPlaceID(place_id);
@@ -87,13 +83,11 @@ export type nearbyPlace = {
 }
 
 
-export function getNearby(query: string) {
+export function getNearby(location: any, query:string) {
 
     const radiusInMeters: number = 5000;
 
-    const coords: latLong = matchGoogleMapsURL('https://www.google.com/maps/place/28.523254+-81.462899/?entry=im') as latLong;
-
-    const queryableLatLong: maps.LatLngArray = [coords.lat, coords.long];
+    const queryableLatLong: maps.LatLngArray = [location.lat, location.long];
 
     const request: maps.PlacesNearbyRequest = { location: queryableLatLong, radius: radiusInMeters, keyword: query };
 
@@ -137,13 +131,13 @@ export function directionsFromCoords(origin: latLong, dest: maps.LatLngLiteral[]
     })
 }
 
-export function directionsFromAddress(pinDropString: string, address: string, transportMode: maps.TravelMode) {
+export function directionsFromAddress(address: string, transportMode: maps.TravelMode, location: any) {
     return Promise.resolve()
         .then(() => {
             return geocodeAddress(address);
         })
         .then((coords) => {
-            return directionsFromCoords(matchGoogleMapsURL(pinDropString) as latLong, coords, transportMode);
+            return directionsFromCoords(location, coords, transportMode);
         })
         .then((directions) => {
             return Promise.resolve(directions);
@@ -151,15 +145,15 @@ export function directionsFromAddress(pinDropString: string, address: string, tr
 }
 
 
-export function directionsFromQuery(pinDropString: string, query: string, mode: string) {
+export function directionsFromQuery(location: any, query: string, mode: string, loc: Location) {
     const transportMode: maps.TravelMode = mode as maps.TravelMode;
 
     return Promise.resolve()
         .then(() => {
-            return getAddressFromQuery(query);
+            return getAddressFromQuery(query, loc);
         })
         .then((address) => {
-            return directionsFromAddress(pinDropString, address, transportMode);
+            return directionsFromAddress(address, transportMode, location);
         })
         .then((directions) => {
             return Promise.resolve(directions);
@@ -187,8 +181,13 @@ export function matchGoogleMapsURL(message: string) {
     };
 }
 
+const HERE_MAPS_APP_ID = process.env.HERE_MAPS_APP_ID;
+if (!HERE_MAPS_APP_ID) throw new Error('Missing process.env.HERE_MAPS_APP_ID!');
 
-export function nearbyTransit() {
+const HERE_MAPS_APP_CODE = process.env.HERE_MAPS_APP_CODE;
+if (!HERE_MAPS_APP_CODE) throw new Error('Missing process.env.HERE_MAPS_APP_CODE!');
+
+export function nearbyTransit(location:string) {
 
     return new Promise<any>((resolve, reject) => {
 
@@ -198,15 +197,10 @@ export function nearbyTransit() {
             url: 'https://transit.api.here.com/v3/stations/by_geocoord.json',
             qs:
             {
-                app_id: '2xXYKp1t2IKwYjTtLVCm',
-                app_code: 'xEkLIpecguAH90seO7jJFA',
-                center: '28.523254,-81.462899',
+                app_id: HERE_MAPS_APP_ID,
+                app_code: HERE_MAPS_APP_CODE,
+                center: location,
                 radius: '10000'
-            },
-            headers:
-            {
-                'Postman-Token': '9a309ec8-0cc7-4395-83ca-d011d7fd497c',
-                'cache-control': 'no-cache'
             }
         };
 
@@ -239,10 +233,10 @@ export type StationSentence = {
     output: string
 }
 
-export function nearbyTransitFormatted() {
+export function nearbyTransitFormatted(location:string) {
     return Promise.resolve()
         .then(() => {
-            return nearbyTransit();
+            return nearbyTransit(location);
         })
         .then((stations)=> {
             const formattedStations:Station[] = [];
